@@ -14,4 +14,4 @@ conexion.connect(function (err) {
     } else {
         console.log("Conexión correcta");
     }
-});
+}); 

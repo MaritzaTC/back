@@ -1,8 +1,8 @@
 import {Router} from 'express';
-import {pool} from '../database/bdSkills.js';
-import {retrieveData} from '../controllers/index.controller.js';
-
+import {getDrivers, createDrivers, updateDrivers, deleteDrivers, getDriver, getDriverName, getHeightAndWeight, getSkills, getAgeAndWins, getPointAndPodios, getConstructorStandings, getTotalConstructorStandings, getTotalDriverStandings} from '../controllers/drivers.controller.js';
 
 const router = Router();
-router.get('/retrieveData', retrieveData);
+router.get('/drivers/:id', getHeightAndWeight);
+router.get('/drivers/:name', getSkills);
+
 export default router;

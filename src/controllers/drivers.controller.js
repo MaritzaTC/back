@@ -1,4 +1,3 @@
-
 import {pool} from '../database/bdSkills.js';  
 import { calculateIMC, calculateTotal, calculateAveragePoints, calculateAveragePosition, calculateAverageWins } from '../models/driver.model.js';
 import { sampleCorrelation } from 'simple-statistics';
@@ -82,7 +81,7 @@ export const getSkills = async (req, res) => {
 
 export const getHeightAndWeight = async (req, res) => {
     try {
-        const[rows] = await pool.query('SELECT Height, Weight FROM skills WHERE id = ?',[req.params.id] )
+        const[rows] = await pool.query('SELECT Name, Height, Weight FROM skills WHERE id = ?',[req.params.id] )
         const driverData = rows[0];
         
         const IMC = calculateIMC(driverData.Weight, driverData.Height);
