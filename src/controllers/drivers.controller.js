@@ -178,23 +178,42 @@ export const getHeightAndWeight = async (req, res) => {
 
 export const getAgeAndWins = async (req, res) => {
     try {
-        const [rows] = await pool.query('SELECT Age, Wins FROM correlation')
-         // Extract arrays for Age and Wins
-         const ages = rows.map(row => row.Age);
-         const wins = rows.map(row => row.Wins);
-         // Calculate the correlation
-         const correlation = sampleCorrelation(ages, wins);
-         // Respond with the data and correlation
-         res.json({
-            data: rows,
-            correlation: correlation
-         });
-
+      const [allRows] = await pool.query('SELECT Age, Wins FROM correlation');
+  
+      // Extract arrays for Age and Wins for the entire dataset
+      const allAges = allRows.map(row => row.Age);
+      const allWins = allRows.map(row => row.Wins);
+  
+      // Calculate the correlation for the entire dataset
+      const correlationForAll = sampleCorrelation(allAges, allWins);
+  
+      // Now, let's fetch the paginated data
+      const page = req.query.page || 1; 
+      const pageSize = req.query.pageSize || 70; // Default to 70 items per page if not provided
+  
+      const offset = (page - 1) * pageSize;
+      const [rows] = await pool.query('SELECT Age, Wins FROM correlation LIMIT ? OFFSET ?', [pageSize, offset]);
+  
+      // Extract arrays for Age and Wins for the current page
+      const ages = rows.map(row => row.Age);
+      const wins = rows.map(row => row.Wins);
+  
+      // Calculate the correlation for the current page
+      const correlationForPage = sampleCorrelation(ages, wins);
+  
+      // Respond with the data, correlation for the entire dataset, and correlation for the current page
+      res.json({
+        correlationForAll: correlationForAll,
+        correlationForPage: correlationForPage,
+        data: rows
+      });
+  
     } catch (error) {
-        console.log(error)
-        res.status(500).send('Internal Server Error');
+      console.log(error)
+      res.status(500).send('Internal Server Error');
     }
-};
+  };
+  
 
 export const getPointAndPodios = async (req, res) => {
     try {

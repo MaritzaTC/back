@@ -10,7 +10,7 @@ router.get('/drivers', getDrivers);
 router.get('/drivers/driver/:id', getDriver);
 router.get('/drivers/drivername/:name', getDriverName);
 router.get('/drivers/heightandweight/:id', getHeightAndWeight);
-router.get('/drivers/skills/:id', getSkills);
+router.get('/handleCompareClick/:id', getSkills);
 router.post('/drivers/create', createDrivers);
 router.patch('/drivers/update/:id', updateDrivers);  //patch es para actualizar solo un campo
 router.delete('/drivers/delete',deleteDrivers );
