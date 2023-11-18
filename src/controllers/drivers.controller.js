@@ -4,65 +4,141 @@ import { sampleCorrelation } from 'simple-statistics';
 
 
 export const getDrivers = async (req, res) => {
-   const [rows] = await pool.query('SELECT * FROM skills')
-res.json(rows)};
+    try {
+        const [rows] = await pool.query('SELECT * FROM skills')
+        res.json(rows)
+    } catch (error) {
+        console.log(error)
+        res.status(500).send('Internal Server Error');
+    }
+   };
 
 export const getDriverName = async (req, res) => {
-    const [rows] = await pool.query('SELECT * FROM skills WHERE Name = ?',[req.params.name] )
-    console.log(rows)
-    res.json(rows[0])
+    try {
+        const [rows] = await pool.query('SELECT * FROM skills WHERE Name = ?',[req.params.name] )
+    
+        console.log(rows)
+        res.json(rows[0])
+    } catch (error) {
+        console.log(error)
+        res.status(500).send('Internal Server Error');
+    }
+   
 };
 export const getDriver = async (req, res) => {
-    const [rows] = await pool.query('SELECT * FROM skills WHERE id = ?',[req.params.id] )
+    try {
+        const [rows] = await pool.query('SELECT * FROM skills WHERE id = ?',[req.params.id] )
+    if(rows.length <= 0)return res.status(404).json({message: 'Driver not found'})
     console.log(rows)
     res.json(rows[0])
+    } catch (error) {
+        console.log(error)
+        res.status(500).send('Internal Server Error');
+    }
+    
 };
 
 export const createDrivers = async (req, res) => {
-    const {id,Name,Age,Height, Weight,IMC, polePosition,NumRace,Points, Podios,Wins,PassageThrougCurves,Braking,Reaction, Control,Touch,Adaptability,Overtaking, Defending, Precision} = req.body;
-    const [rows] = await pool.query('INSERT INTO skills(id,Name,Age,Height, Weight,IMC, polePosition,NumRace,Points, Podios,Wins,PassageThrougCurves,Braking,Reaction, Control,Touch,Adaptability,Overtaking, Defending, Precision) VALUES(?, ?)', [id,Name,Age,Height, Weight,IMC, polePosition,NumRace,Points, Podios,Wins,PassageThrougCurves,Braking,Reaction, Control,Touch,Adaptability,Overtaking, Defending, Precision]);
-    res.send({  
-        id: rows.insertId,
-        name,
-        age,
-        height,
-        weight,
-        IMC,
-        polePosition,
-        numRace,
-        points,
-        podios,
-        wins,
-        passageThrougCurves,
-        braking,
-        reaction,
-        control,
-        touch,
-        adaptability,
-        overtaking,
-        defending,
-        accuracy
-    })
-    console.log(req.body);
-    res.send('Create Drivers')};
+    try {
+        const {id,Name,Age,Height, Weight,IMC, polePosition,NumRace,Points, Podios,Wins,PassageThrougCurves,Braking,Reaction, Control,Touch,Adaptability,Overtaking, Defending, Precision} = req.body;
+        const [rows] = await pool.query('INSERT INTO skills(id,Name,Age,Height, Weight,IMC, polePosition,NumRace,Points, Podiums,Wins,PassageThrougCurves,Braking,Reaction, Control,Touch,Adaptability,Overtaking, Defending, Precision) VALUES(?, ?)', [id,Name,Age,Height, Weight,IMC, polePosition,NumRace,Points, Podios,Wins,PassageThrougCurves,Braking,Reaction, Control,Touch,Adaptability,Overtaking, Defending, Precision]);
+        res.send({  
+            id: rows.insertId,
+            name,
+            age,
+            height,
+            weight,
+            IMC,
+            polePosition,
+            numRace,
+            points,
+            podios,
+            wins,
+            passageThrougCurves,
+            braking,
+            reaction,
+            control,
+            touch,
+            adaptability,
+            overtaking,
+            defending,
+            accuracy
+        })
+        console.log(req.body);
+        res.send('Create Drivers') 
+    } catch (error) {
+        console.log(error)
+        res.status(500).send('Internal Server Error');
+    }
+    };
 
-export const updateDrivers =  (req, res) => {
-    
-    res.send('Update Drivers')} ;
+export const updateDrivers = async (req, res) => {
+    try {
+    const {id} = req.params;
+    const {Name,Age,Height, Weight,IMC, polePosition,NumRace,Points, Podios,Wins,PassageThrougCurves,Braking,Reaction, Control,Touch,Adaptability,Overtaking, Defending, Precision} = req.body;
+   
+    const [result] = await pool.query('UPDATE drivers Set Name = IFNULL(?), Age = IFNULL(?), Height = IFNULL(?), Weight = IFNULL(?), IMC = IFNULL(?), polePosition = IFNULL(?), NumRace = IFNULL(?), Points = IFNULL(?), Podios = IFNULL(?), Wins = IFNULL(?), PassageThrougCurves = IFNULL(?), Braking = IFNULL(?), Reaction = IFNULL(?), Control = IFNULL(?), Touch = IFNULL(?), Adaptability = IFNULL(?), Overtaking = IFNULL(?), Defending = IFNULL(?), Precision = IFNULL(?) WHERE id = ?', [Name,Age,Height, Weight,IMC, polePosition,NumRace,Points, Podios,Wins,PassageThrougCurves,Braking,Reaction, Control,Touch,Adaptability,Overtaking, Defending, Precision, id]  )
+    if(result.affectedRows === 0) return res.status(404).json({message: 'Driver not found'})
+    res.json('Update Drivers')
+    } catch (error) {
+        console.log(error)
+        res.status(500).send('Internal Server Error');
+    }
+    } ;
 
-export const deleteDrivers = (req, res) => res.send('delete Drivers');
+export const deleteDrivers = async (req, res) => {
+    try {
+        const result = await pool.query ('DELETE FROM skills WHERE id = ?',[req.params.id] )
+   if (result.affectedRows === 0) return res.status(404).json({message: 'Driver not found'})
+    res.sendStatus(204)
+    } catch (error) {
+        console.log(error)
+        res.status(500).send('Internal Server Error');
+    }
+   };
 
 export const getSkills = async (req, res) => {
     try {
-        const [rows] = await pool.query('SELECT PassageThrougCurves,Braking,Reaction, Control,Touch,Adaptability,Overtaking, Defending, accuracy FROM skills WHERE name= ?',[req.params.name] )
+            // Obtén todos los datos de la base de datos
+            const [rows] = await pool.query('SELECT id, passageThroughCurves, Braking, Reaction, Control, Touch, Adaptability, Overtaking, Defending, accuracy FROM skills');
+
+            // Itera sobre cada registro y actualiza el total
+            for (const getDriverData of rows) {
+                const total = calculateTotal(
+                    getDriverData.passageThroughCurves,
+                    getDriverData.Braking,
+                    getDriverData.Reaction,
+                    getDriverData.Control,
+                    getDriverData.Touch,
+                    getDriverData.Adaptability,
+                    getDriverData.Overtaking,
+                    getDriverData.Defending,
+                    getDriverData.accuracy
+                );
+    
+                // Actualiza el total en la base de datos para cada registro
+                await pool.query('UPDATE skills SET total = ? WHERE id = ?', [total, getDriverData.id]);
+            }
+    
+            console.log('Total updated for all records');
+            res.json({ message: 'Total updated for all records' });
+    } catch (error) {
+        console.log(error)
+        res.status(500).send('Internal Server Error');
+    }
+};
+
+export const getSkillsId = async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT passageThroughCurves,Braking,Reaction, Control,Touch,Adaptability,Overtaking, Defending, accuracy FROM skills WHERE id= ?',[req.params.id] )
         const getDriverData = rows[0];
-        const total = calculateTotal(getDriverData.PassageThrougCurves,getDriverData.Braking,getDriverData.Reaction,getDriverData.Control,getDriverData.Touch,getDriverData.Adaptability,getDriverData.Overtaking,getDriverData.Defending,getDriverData.accuracy);
-        const [updatedRows] = await pool.query('UPDATE skills SET Total = ? WHERE name = ?', [total, req.params.name]);
+        const total = calculateTotal(getDriverData.passageThroughCurves ,getDriverData.Braking,getDriverData.Reaction,getDriverData.Control,getDriverData.Touch,getDriverData.Adaptability,getDriverData.Overtaking,getDriverData.Defending,getDriverData.accuracy );
+        const [updatedRows] = await pool.query('UPDATE skills SET total = ? WHERE id = ?', [total, req.params.id]);
         console.log('Updated data:', updatedRows[0]);
         res.json({
             id: req.params.id,
             Name: getDriverData.Name,
-            PassageThrougCurves: getDriverData.PassageThrougCurves,
+            passageThrougCurves: getDriverData.passageThrougCurves,
             Braking: getDriverData.Braking,
             Reaction: getDriverData.Reaction,
             Control: getDriverData.Control,
