@@ -154,7 +154,19 @@ export const getSkillsId = async (req, res) => {
         res.status(500).send('Internal Server Error');
     }
 };
-
+export const getAllHeightAndWeight = async (req, res) => {
+    try {
+        const[rows] = await pool.query('SELECT Name, Height,IMC,Weight FROM skills' )
+      
+        res.json({
+            data: rows
+            
+        });
+    } catch (error) {
+        console.log(error)
+        res.status(500).send('Internal Server Error');
+    }
+};
 export const getHeightAndWeight = async (req, res) => {
     try {
         const[rows] = await pool.query('SELECT Name, Height, Weight FROM skills WHERE id = ?',[req.params.id] )
