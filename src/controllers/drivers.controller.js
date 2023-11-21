@@ -235,9 +235,6 @@ export const getAgeAndWins = async (req, res) => {
       res.status(500).send('Internal Server Error');
     }
   };
-  
-  
-
 export const getPointAndPodios = async (req, res) => {
     try {
         const [rows] = await pool.query('SELECT Points, Podiums FROM skills')
@@ -290,6 +287,55 @@ export const getConstructorStandings = async (req, res) => {
             console.log(error)
             res.status(500).send('Internal Server Error');
         }
+};
+
+export const getRankingFinallyFirsts = async (req, res) => {
+    try {
+        const [rows] = await pool.query(`SELECT results1.raceId, races1.name, COUNT(*) AS cantidad
+        FROM results1
+        JOIN races1 ON results1.raceId = races1.raceId
+        WHERE results1.statusId = 1
+        GROUP BY results1.raceId, races1.name
+        ORDER BY cantidad DESC
+        LIMIT 5;
+        
+        `)
+        const constructorFinally = rows.map(row => ({
+            racesId: row.raceId,
+            name: row.name,
+            cantidad: row.cantidad,
+        }))
+        res.json({
+            constructorFinally,
+        })
+    
+    } catch (error) {
+        console.log(error);
+            res.status(500).send('Internal Server Error');
+    }
+    };
+
+export const getRankingFinally = async (req, res) => {
+try {
+    const [rows] = await pool.query(`SELECT results1.raceId, races1.name, COUNT(*) AS cantidad
+    FROM results1
+    JOIN races1 ON results1.raceId = races1.raceId
+    WHERE results1.statusId = 1
+    GROUP BY results1.raceId, races1.name;
+    `)
+    const constructorFinally = rows.map(row => ({
+        racesId: row.raceId,
+        name: row.name,
+        cantidad: row.cantidad,
+    }))
+    res.json({
+        constructorFinally,
+    })
+
+} catch (error) {
+    console.log(error);
+        res.status(500).send('Internal Server Error');
+}
 };
 //  que constructor tiene mas posibilidad de ganar la carrera 
 export const getTotalConstructorStandings = async (req, res) => {
