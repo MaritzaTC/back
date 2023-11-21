@@ -1,6 +1,6 @@
 import express from 'express';
 import driversRoutes from './src/routes/drivers.routes.js';
-
+import {PORT} from'./src/config.js'
 const app = express();
 
 
@@ -9,4 +9,4 @@ app.use("/api",driversRoutes);
 
 app.use((req, res, next) => res.status(404).json({error: 'Endpoint not found'}))
 
-app.listen(5000);
+app.listen(PORT);
