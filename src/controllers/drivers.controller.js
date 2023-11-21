@@ -2,6 +2,158 @@ import {pool} from '../database/bdSkills.js';
 import { calculateIMC, calculateTotal, calculateAveragePoints, calculateAveragePosition, calculateAverageWins } from '../models/driver.model.js';
 import { sampleCorrelation } from 'simple-statistics';
 
+export const getRankingFinallyFirsts = async (req, res) => {
+    try {
+        const [rows] = await pool.query(`SELECT results1.raceId, races1.name, COUNT(*) AS cantidad
+        FROM results1
+        JOIN races1 ON results1.raceId = races1.raceId
+        WHERE results1.statusId = 1
+        GROUP BY results1.raceId, races1.name
+        ORDER BY cantidad DESC
+        LIMIT 5;
+        
+        `)
+        const constructorFinally = rows.map(row => ({
+            racesId: row.raceId,
+            name: row.name,
+            cantidad: row.cantidad,
+        }))
+        res.json({
+            constructorFinally,
+        })
+    
+    } catch (error) {
+        console.log(error);
+            res.status(500).send('Internal Server Error');
+    }
+    };
+
+export const getRankingFinally = async (req, res) => {
+try {
+    const [rows] = await pool.query(`SELECT results1.raceId, races1.name, COUNT(*) AS cantidad
+    FROM results1
+    JOIN races1 ON results1.raceId = races1.raceId
+    WHERE results1.statusId = 1
+    GROUP BY results1.raceId, races1.name;
+    `)
+    const constructorFinally = rows.map(row => ({
+        racesId: row.raceId,
+        name: row.name,
+        cantidad: row.cantidad,
+    }))
+    res.json({
+        constructorFinally,
+    })
+
+} catch (error) {
+    console.log(error);
+        res.status(500).send('Internal Server Error');
+}
+};
+
+export const getTotalDriverStandings = async (req, res) => {
+    try {
+        const [rows] = await pool.query(`
+            SELECT driverstandings.driverId,
+                   SUM(driverstandings.Wins) AS totalWins,
+                   COUNT(*) AS totalRaces,
+                   drivers.driverName
+            FROM driverstandings
+            JOIN drivers ON driverstandings.driverId = drivers.driverId
+            GROUP BY driverstandings.driverId, drivers.driverName
+        `);
+
+        // Calcular la tasa de victorias para cada constructor
+        const driverStats = rows.map(row => ({
+            driverName: row.driverName,
+            driverId: row.driverId,
+            constructorName: row.name,
+            totalWins: row.totalWins,
+            totalRaces: row.totalRaces,
+            winRate: row.totalRaces > 0 ? row.totalWins / row.totalRaces : 0,
+        }));
+
+        // Identificar al constructor con la mejor tasa de victorias
+        const driverWithHighestWinRate = driverStats.reduce((max, current) => (current.winRate > max.winRate ? current : max), driverStats[0]);
+
+        res.json({
+            driverWithHighestWinRate,
+            driverStats,
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(500).send('Internal Server Error');
+    }
+  
+};
+
+//  que constructor tiene mas posibilidad de ganar la carrera 
+export const getTotalConstructorStandings = async (req, res) => {
+    try {
+        const [rows] = await pool.query(`
+            SELECT constructorstandings.constructorId,
+                   SUM(constructorstandings.Wins) AS totalWins,
+                   COUNT(*) AS totalRaces,
+                   constructors1.name
+            FROM constructorstandings
+            JOIN constructors1 ON constructorstandings.constructorId = constructors1.constructorId
+            GROUP BY constructorstandings.constructorId, constructors1.name
+        `);
+
+        // Calcular la tasa de victorias para cada constructor
+        const constructorStats = rows.map(row => ({
+            constructorId: row.constructorId,
+            constructorName: row.name,
+            totalWins: row.totalWins,
+            totalCircuits: row.totalRaces,
+            winRate: row.totalRaces > 0 ? row.totalWins / row.totalRaces : 0,
+        }));
+
+        // Identificar al constructor con la mejor tasa de victorias
+        const constructorWithHighestWinRate = constructorStats.reduce((max, current) => (current.winRate > max.winRate ? current : max), constructorStats[0]);
+
+        res.json({
+            constructorWithHighestWinRate,
+            constructorStats,
+        });
+    } catch (error) {
+        console.log(error);
+        res.status(500).send('Internal Server Error');
+    }
+};
+export const getConstructorStandings = async (req, res) => {
+    try {
+        const [rows] = await pool.query(`
+        SELECT constructorstandings.raceId, 
+               constructorstandings.constructorId,
+               constructorstandings.Points,
+               constructorstandings.Position,
+               constructorstandings.Wins,
+               constructors1.name
+        FROM constructorstandings
+        JOIN constructors1 ON constructorstandings.constructorId = constructors1.constructorId
+        WHERE constructorstandings.constructorId = ?
+    `, [req.params.constructorId]);
+    
+    const points = rows.map(row => row.Points);
+    const position= rows.map(row => row.Position);
+    const wins= rows.map(row => row.Wins);
+    // Calculate the correlation
+    const averagePoints = calculateAveragePoints(points);
+    const averagePosition = calculateAveragePosition(position);
+    const averageWins = calculateAverageWins(wins);
+    res.json({
+        data: rows,  
+        averagePoints: averagePoints,
+        averagePosition: averagePosition,
+        averageWins: averageWins
+     });
+   
+    } catch (error) {
+        console.log(error)
+        res.status(500).send('Internal Server Error');
+    }
+};
 
 export const getDrivers = async (req, res) => {
     try {
@@ -11,7 +163,7 @@ export const getDrivers = async (req, res) => {
         console.log(error)
         res.status(500).send('Internal Server Error');
     }
-   };
+};
 
 export const getDriverName = async (req, res) => {
     try {
@@ -25,6 +177,7 @@ export const getDriverName = async (req, res) => {
     }
    
 };
+
 export const getDriver = async (req, res) => {
     try {
         const [rows] = await pool.query('SELECT * FROM skills WHERE id = ?',[req.params.id] )
@@ -99,10 +252,7 @@ export const deleteDrivers = async (req, res) => {
 
 export const getSkills = async (req, res) => {
     try {
-            // Obtén todos los datos de la base de datos
             const [rows] = await pool.query('SELECT id, passageThroughCurves, Braking, Reaction, Control, Touch, Adaptability, Overtaking, Defending, accuracy FROM skills');
-
-            // Itera sobre cada registro y actualiza el total
             for (const getDriverData of rows) {
                 const total = calculateTotal(
                     getDriverData.passageThroughCurves,
@@ -115,11 +265,8 @@ export const getSkills = async (req, res) => {
                     getDriverData.Defending,
                     getDriverData.accuracy
                 );
-    
-                // Actualiza el total en la base de datos para cada registro
                 await pool.query('UPDATE skills SET total = ? WHERE id = ?', [total, getDriverData.id]);
             }
-    
             console.log('Total updated for all records');
             res.json({ message: 'Total updated for all records' });
     } catch (error) {
@@ -154,6 +301,7 @@ export const getSkillsId = async (req, res) => {
         res.status(500).send('Internal Server Error');
     }
 };
+
 export const getAllHeightAndWeight = async (req, res) => {
     try {
         const[rows] = await pool.query('SELECT Name, Height,IMC,Weight FROM skills' )
@@ -167,6 +315,7 @@ export const getAllHeightAndWeight = async (req, res) => {
         res.status(500).send('Internal Server Error');
     }
 };
+
 export const getHeightAndWeight = async (req, res) => {
     try {
         const[rows] = await pool.query('SELECT Name, Height, Weight FROM skills WHERE id = ?',[req.params.id] )
@@ -182,6 +331,23 @@ export const getHeightAndWeight = async (req, res) => {
             Weight: driverData.Weight,
             IMC: IMC
         });
+    } catch (error) {
+        console.log(error)
+        res.status(500).send('Internal Server Error');
+    }
+};
+
+export const getPointAndPodios = async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT Points, Podiums FROM skills')
+         const points = rows.map(row => row.Points);
+         const podiums= rows.map(row => row.Podiums);
+         const correlation = sampleCorrelation(points,podiums);
+         res.json({
+            data: rows,
+            correlation: correlation
+         });
+
     } catch (error) {
         console.log(error)
         res.status(500).send('Internal Server Error');
@@ -206,6 +372,7 @@ export const getAgeAndWinsCorrelation = async  (req, res) => {
         res.status(500).send('Internal Server Error');
     }
 };
+
 export const getAgeAndWins = async (req, res) => {
     try {
       const pageSize = req.query.pageSize ||40;
@@ -234,176 +401,9 @@ export const getAgeAndWins = async (req, res) => {
       console.log(error);
       res.status(500).send('Internal Server Error');
     }
-  };
-export const getPointAndPodios = async (req, res) => {
-    try {
-        const [rows] = await pool.query('SELECT Points, Podiums FROM skills')
-         // Extract arrays for Age and Wins
-         const points = rows.map(row => row.Points);
-         const podiums= rows.map(row => row.Podiums);
-         // Calculate the correlation
-         const correlation = sampleCorrelation(points,podiums);
-         // Respond with the data and correlation
-         res.json({
-            data: rows,
-            correlation: correlation
-         });
-
-    } catch (error) {
-        console.log(error)
-        res.status(500).send('Internal Server Error');
-    }
 };
-
-export const getConstructorStandings = async (req, res) => {
-        try {
-            const [rows] = await pool.query(`
-            SELECT constructorstandings.raceId, 
-                   constructorstandings.constructorId,
-                   constructorstandings.Points,
-                   constructorstandings.Position,
-                   constructorstandings.Wins,
-                   constructors1.name
-            FROM constructorstandings
-            JOIN constructors1 ON constructorstandings.constructorId = constructors1.constructorId
-            WHERE constructorstandings.constructorId = ?
-        `, [req.params.constructorId]);
-        
-        const points = rows.map(row => row.Points);
-        const position= rows.map(row => row.Position);
-        const wins= rows.map(row => row.Wins);
-        // Calculate the correlation
-        const averagePoints = calculateAveragePoints(points);
-        const averagePosition = calculateAveragePosition(position);
-        const averageWins = calculateAverageWins(wins);
-        res.json({
-            data: rows,  
-            averagePoints: averagePoints,
-            averagePosition: averagePosition,
-            averageWins: averageWins
-         });
-       
-        } catch (error) {
-            console.log(error)
-            res.status(500).send('Internal Server Error');
-        }
-};
-
-export const getRankingFinallyFirsts = async (req, res) => {
-    try {
-        const [rows] = await pool.query(`SELECT results1.raceId, races1.name, COUNT(*) AS cantidad
-        FROM results1
-        JOIN races1 ON results1.raceId = races1.raceId
-        WHERE results1.statusId = 1
-        GROUP BY results1.raceId, races1.name
-        ORDER BY cantidad DESC
-        LIMIT 5;
-        
-        `)
-        const constructorFinally = rows.map(row => ({
-            racesId: row.raceId,
-            name: row.name,
-            cantidad: row.cantidad,
-        }))
-        res.json({
-            constructorFinally,
-        })
-    
-    } catch (error) {
-        console.log(error);
-            res.status(500).send('Internal Server Error');
-    }
-    };
-
-export const getRankingFinally = async (req, res) => {
-try {
-    const [rows] = await pool.query(`SELECT results1.raceId, races1.name, COUNT(*) AS cantidad
-    FROM results1
-    JOIN races1 ON results1.raceId = races1.raceId
-    WHERE results1.statusId = 1
-    GROUP BY results1.raceId, races1.name;
-    `)
-    const constructorFinally = rows.map(row => ({
-        racesId: row.raceId,
-        name: row.name,
-        cantidad: row.cantidad,
-    }))
-    res.json({
-        constructorFinally,
-    })
-
-} catch (error) {
-    console.log(error);
-        res.status(500).send('Internal Server Error');
-}
-};
-//  que constructor tiene mas posibilidad de ganar la carrera 
-export const getTotalConstructorStandings = async (req, res) => {
-    try {
-        const [rows] = await pool.query(`
-            SELECT constructorstandings.constructorId,
-                   SUM(constructorstandings.Wins) AS totalWins,
-                   COUNT(*) AS totalRaces,
-                   constructors1.name
-            FROM constructorstandings
-            JOIN constructors1 ON constructorstandings.constructorId = constructors1.constructorId
-            GROUP BY constructorstandings.constructorId, constructors1.name
-        `);
-
-        // Calcular la tasa de victorias para cada constructor
-        const constructorStats = rows.map(row => ({
-            constructorId: row.constructorId,
-            constructorName: row.name,
-            totalWins: row.totalWins,
-            totalCircuits: row.totalRaces,
-            winRate: row.totalRaces > 0 ? row.totalWins / row.totalRaces : 0,
-        }));
-
-        // Identificar al constructor con la mejor tasa de victorias
-        const constructorWithHighestWinRate = constructorStats.reduce((max, current) => (current.winRate > max.winRate ? current : max), constructorStats[0]);
-
-        res.json({
-            constructorWithHighestWinRate,
-            constructorStats,
-        });
-    } catch (error) {
-        console.log(error);
-        res.status(500).send('Internal Server Error');
-    }
-};
-
-export const getTotalDriverStandings = async (req, res) => {
-    try {
-        const [rows] = await pool.query(`
-            SELECT driverstandings.driverId,
-                   SUM(driverstandings.Wins) AS totalWins,
-                   COUNT(*) AS totalRaces,
-                   drivers.driverName
-            FROM driverstandings
-            JOIN drivers ON driverstandings.driverId = drivers.driverId
-            GROUP BY driverstandings.driverId, drivers.driverName
-        `);
-
-        // Calcular la tasa de victorias para cada constructor
-        const driverStats = rows.map(row => ({
-            driverName: row.driverName,
-            driverId: row.driverId,
-            constructorName: row.name,
-            totalWins: row.totalWins,
-            totalRaces: row.totalRaces,
-            winRate: row.totalRaces > 0 ? row.totalWins / row.totalRaces : 0,
-        }));
-
-        // Identificar al constructor con la mejor tasa de victorias
-        const driverWithHighestWinRate = driverStats.reduce((max, current) => (current.winRate > max.winRate ? current : max), driverStats[0]);
-
-        res.json({
-            driverWithHighestWinRate,
-            driverStats,
-        });
-    } catch (error) {
-        console.log(error);
-        res.status(500).send('Internal Server Error');
-    }
   
-};
+
+
+
+
