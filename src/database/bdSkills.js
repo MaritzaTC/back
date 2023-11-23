@@ -12,7 +12,8 @@ export const pool = createPool({
     database: DB_DATABASE,
     user: DB_USER,
     password: DB_PASSWORD,
-    port: DB_PORT
+    port: DB_PORT,
+    ssl: {}
 });
 
 // Validate the connection
