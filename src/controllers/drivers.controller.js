@@ -51,6 +51,28 @@ try {
 }
 };
 
+export const getRankingFatalAccident = async (req, res) => {
+    try {
+        const [rows] = await pool.query(`SELECT results1.raceId, races1.name, COUNT(*) AS cantidad
+        FROM results1
+        JOIN races1 ON results1.raceId = races1.raceId
+        WHERE results1.statusId = 104
+        GROUP BY results1.raceId, races1.name;
+        `)
+        const constructorFinally = rows.map(row => ({
+            racesId: row.raceId,
+            name: row.name,
+            cantidad: row.cantidad,
+        }))
+        res.json({
+            constructorFinally,
+        })
+    } catch (error) {
+        console.log(error);
+        res.status(500).send('Internal Server Error');
+    }
+}
+
 export const getTotalDriverStandings = async (req, res) => {
     try {
         const [rows] = await pool.query(`
@@ -63,7 +85,6 @@ export const getTotalDriverStandings = async (req, res) => {
             GROUP BY driverstandings.driverId, drivers.driverName
         `);
 
-        // Calcular la tasa de victorias para cada constructor
         const driverStats = rows.map(row => ({
             driverName: row.driverName,
             driverId: row.driverId,
@@ -86,14 +107,13 @@ export const getTotalDriverStandings = async (req, res) => {
     }
   
 };
-
 //  que constructor tiene mas posibilidad de ganar la carrera 
 export const getTotalConstructorStandings = async (req, res) => {
     try {
         const [rows] = await pool.query(`
             SELECT constructorstandings.constructorId,
                    SUM(constructorstandings.Wins) AS totalWins,
-                   COUNT(*) AS totalRaces,
+                   COUNT(*) AS totalCircuits,
                    constructors1.name
             FROM constructorstandings
             JOIN constructors1 ON constructorstandings.constructorId = constructors1.constructorId
@@ -105,8 +125,8 @@ export const getTotalConstructorStandings = async (req, res) => {
             constructorId: row.constructorId,
             constructorName: row.name,
             totalWins: row.totalWins,
-            totalCircuits: row.totalRaces,
-            winRate: row.totalRaces > 0 ? row.totalWins / row.totalRaces : 0,
+            totalCircuits: row.totalCircuits,
+            winRate: row.totalCircuits > 0 ? row.totalWins / row.totalCircuits : 0,
         }));
 
         // Identificar al constructor con la mejor tasa de victorias
@@ -132,13 +152,13 @@ export const getConstructorStandings = async (req, res) => {
                constructors1.name
         FROM constructorstandings
         JOIN constructors1 ON constructorstandings.constructorId = constructors1.constructorId
-        WHERE constructorstandings.constructorId = ?
+        GROUP BY constructorstandings.constructorId, constructors1.name
     `, [req.params.constructorId]);
     
     const points = rows.map(row => row.Points);
     const position= rows.map(row => row.Position);
     const wins= rows.map(row => row.Wins);
-    // Calculate the correlation
+
     const averagePoints = calculateAveragePoints(points);
     const averagePosition = calculateAveragePosition(position);
     const averageWins = calculateAverageWins(wins);
